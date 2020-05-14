@@ -1,4 +1,6 @@
+import os
 from json import dumps
+
 
 def saveResults(network, epochs, denses, results):
     result = {

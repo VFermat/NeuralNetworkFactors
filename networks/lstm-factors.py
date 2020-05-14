@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 from helpers.create import createInputs
+from helpers.metrics import rootMeanSquaredError
 from helpers.save import saveResults
 
 
@@ -22,7 +23,7 @@ def buildModel(denses, inputShape, denseSize=20):
     for i in range(denses - 1):
         model.add(Dense(denseSize))
     model.add(Dense(1))
-    model.compile(loss='mean_squared_error', optimizer='adam')
+    model.compile(loss=rootMeanSquaredError, optimizer='adam')
 
     return model
 
@@ -44,20 +45,18 @@ def run(epochs, denses, xTrain, yTrain, xTest, yTest):
     }
 
     yPred = model.predict(xTest)
-    results['mse'] = mean_squared_error(yTest, yPred)
+    results['scaledMse'] = mean_squared_error(yTest, yPred)
 
-    saveResults("LSTM-NOROLLING-FACTORS", epochs, denses, results)
-
-    plt.plot(yTest, label='Real')
-    plt.plot(yPred, label='Pred')
-    plt.legend()
-    plt.show()
+    return results, yPred
 
 
-def main():
-    trainX, trainY, testX, testY = createInputs()
-    run(1, 2, trainX, trainY, testX, testY)
+def main(epochs):
+    xTrain, yTrain, xTest, yTest, scaler = createInputs(factors=False)
+    results, yPred = run(epochs, 2, xTrain, yTrain, xTest, yTest)
+    results['unscaledMse'] = mean_squared_error(
+        scaler.inverse_transform(yTest.reshape((-1, 1))), scaler.inverse_transform(yPred))
+    saveResults("LSTM-NOROLLING-FACTORS", epochs, 2, results)
 
 
 if __name__ == '__main__':
-    main()
+    main(1)

@@ -6,9 +6,10 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 
-def scaleDataFrame(dataFrame):
+def scaleDataFrame(data):
     scaler = MinMaxScaler()
-    return scaler.fit_transform(dataFrame.values)
+    data = scaler.fit_transform(data)
+    return data, scaler
 
 
 def createInputs(factors=True, type='lstm', trainSize=0.7):
@@ -17,18 +18,20 @@ def createInputs(factors=True, type='lstm', trainSize=0.7):
     if not factors:
         dataFrame.drop(['Mkt-RF', 'SMB', 'HML', 'RF'], axis=1)
 
-    data = scaleDataFrame(dataFrame)
+    data = dataFrame.values
+    x, _ = scaleDataFrame(data[:, :-1])
+    y, scaler = scaleDataFrame(data[:, -1].reshape((-1, 1)))
     trainSize = int(data.shape[0] * trainSize)
 
-    trainX = data[:trainSize, :-1]
-    trainY = data[1:trainSize+1, -1]
+    xTrain = x[:trainSize, :]
+    yTrain = y[1:trainSize+1, 0]
 
-    testX = data[trainSize:-1, :-1]
-    testY = data[trainSize+1:, -1]
+    xTest = x[trainSize:-1, :]
+    yTest = y[trainSize+1:, 0]
 
     if type == 'lstm':
-        trainX = trainX.reshape((trainX.shape[0], trainX.shape[1], 1))
-        testX = testX.reshape(
-            (data.shape[0] - trainX.shape[0]-1, trainX.shape[1], 1))
+        xTrain = xTrain.reshape((xTrain.shape[0], xTrain.shape[1], 1))
+        xTest = xTest.reshape(
+            (data.shape[0] - xTrain.shape[0]-1, xTrain.shape[1], 1))
 
-    return trainX, trainY, testX, testY
+    return xTrain, yTrain, xTest, yTest, scaler
